@@ -1,0 +1,123 @@
+{
+  "name": "AI LeadOps Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst workflow = input.workflow ?? {};\nconst execution = input.execution ?? {};\nconst node = input.node ?? {};\nconst error = input.error ?? {};\nconst message = error.message ?? input.message ?? 'Workflow execution failed.';\nconst knownCodes = [\n  'INVALID_INPUT',\n  'MISSING_CONTACT_METHOD',\n  'MISSING_MESSAGE_CONTENT',\n  'UNSUPPORTED_SOURCE',\n  'AI_GATEWAY_FAILED',\n  'AI_PROVIDER_FAILED',\n  'AI_PARSE_FAILED',\n  'AI_SCHEMA_VALIDATION_FAILED',\n  'CRM_WRITE_FAILED',\n  'SLACK_NOTIFY_FAILED',\n  'GMAIL_DRAFT_FAILED'\n];\nconst errorText = `${error.name ?? ''} ${message}`;\nconst error_code = knownCodes.find((code) => errorText.includes(code)) ?? 'UNKNOWN_ERROR';\nconst workflow_name = workflow.name ?? execution.workflowName ?? 'Unknown Workflow';\nconst node_name = node.name ?? execution.lastNodeExecuted ?? 'Unknown Node';\nconst error_log = {\n  error_id: `err_${Date.now()}`,\n  lead_id: input.lead_id ?? input.lead?.lead_id ?? null,\n  timestamp: new Date().toISOString(),\n  workflow_name,\n  node_name,\n  error_code,\n  error_message: message,\n  status: 'FAILED',\n  raw_input: input,\n  raw_ai_output: input.raw_ai_output ?? null\n};\nconst slack_alert = {\n  channel: $env.SLACK_CHANNEL_ID || '#sales',\n  text: `LeadOps workflow failed: ${workflow_name}`,\n  fields: {\n    workflow_name,\n    node_name,\n    error_code,\n    error_message: message,\n    execution_id: execution.id ?? null\n  }\n};\nreturn [{ json: { error_log, slack_alert } }];"
+      },
+      "id": "extract-execution-context",
+      "name": "Extract Execution Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ErrorLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ $json.error_log.error_id }}",
+            "lead_id": "={{ $json.error_log.lead_id }}",
+            "timestamp": "={{ $json.error_log.timestamp }}",
+            "workflow_name": "={{ $json.error_log.workflow_name }}",
+            "node_name": "={{ $json.error_log.node_name }}",
+            "error_code": "={{ $json.error_log.error_code }}",
+            "error_message": "={{ $json.error_log.error_message }}",
+            "status": "={{ $json.error_log.status }}",
+            "raw_input": "={{ JSON.stringify($json.error_log.raw_input) }}",
+            "raw_ai_output": "={{ JSON.stringify($json.error_log.raw_ai_output) }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "append-error-log-row",
+      "name": "Append Error Log Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": "={{ $json.slack_alert.channel }}",
+        "text": "={{ $json.slack_alert.text + '\\nNode: ' + $json.slack_alert.fields.node_name + '\\nCode: ' + $json.slack_alert.fields.error_code + '\\nMessage: ' + $json.slack_alert.fields.error_message }}",
+        "otherOptions": {}
+      },
+      "id": "send-critical-failure-notification",
+      "name": "Send Critical Failure Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [660, 0],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Execution Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Execution Context": {
+      "main": [
+        [
+          {
+            "node": "Append Error Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Error Log Row": {
+      "main": [
+        [
+          {
+            "node": "Send Critical Failure Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-30T00:00:00.000Z",
+  "versionId": "leadops-error-handler-v1"
+}
