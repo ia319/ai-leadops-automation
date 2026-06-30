@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import prettier from "prettier";
 
 function runGit(args, options = {}) {
   const result = spawnSync("git", args, {
@@ -35,6 +36,8 @@ const stagedFiles = stagedResult.stdout
   .split("\0")
   .filter(Boolean);
 
+const prettierFiles = [];
+
 for (const file of stagedFiles) {
   if (/(^|\/)\.env($|\.)/.test(file) && !file.endsWith(".env.example")) {
     errors.push(`Do not commit secret-bearing env file: ${file}`);
@@ -64,6 +67,28 @@ for (const file of stagedFiles) {
   const isBinary = content.includes(0);
   if (!isBinary && content.includes(13)) {
     errors.push(`Use LF line endings: ${file}`);
+  }
+
+  if (!isBinary) {
+    prettierFiles.push({ file, content: content.toString("utf8") });
+  }
+}
+
+for (const { file, content } of prettierFiles) {
+  const fileInfo = await prettier.getFileInfo(file, {
+    ignorePath: ".prettierignore",
+  });
+  if (fileInfo.ignored || !fileInfo.inferredParser) {
+    continue;
+  }
+
+  const config = (await prettier.resolveConfig(file)) ?? {};
+  const isFormatted = await prettier.check(content, {
+    ...config,
+    filepath: file,
+  });
+  if (!isFormatted) {
+    errors.push(`Format staged file with Prettier: ${file}`);
   }
 }
 
