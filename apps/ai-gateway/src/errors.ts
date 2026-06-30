@@ -17,7 +17,12 @@ export class AppError extends Error {
   readonly statusCode: number;
   readonly details?: unknown;
 
-  constructor(code: ApiErrorCode, message: string, statusCode = 500, details?: unknown) {
+  constructor(
+    code: ApiErrorCode,
+    message: string,
+    statusCode = 500,
+    details?: unknown,
+  ) {
     super(message);
     this.name = "AppError";
     this.code = code;
@@ -39,7 +44,7 @@ export function buildErrorResponse(error: AppError): {
     error: {
       code: error.code,
       message: error.message,
-      ...(error.details === undefined ? {} : { details: error.details })
-    }
+      ...(error.details === undefined ? {} : { details: error.details }),
+    },
   };
 }

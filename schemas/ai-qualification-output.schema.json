@@ -25,11 +25,23 @@
     },
     "lead_type": {
       "type": "string",
-      "enum": ["Sales Inquiry", "Support Request", "Partnership", "Spam", "Other"]
+      "enum": [
+        "Sales Inquiry",
+        "Support Request",
+        "Partnership",
+        "Spam",
+        "Other"
+      ]
     },
     "intent": {
       "type": "string",
-      "enum": ["Book Consultation", "Request Quote", "Ask Question", "Follow Up", "Other"]
+      "enum": [
+        "Book Consultation",
+        "Request Quote",
+        "Ask Question",
+        "Follow Up",
+        "Other"
+      ]
     },
     "priority": {
       "type": "string",
@@ -65,11 +77,22 @@
     "crm_fields": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["pipeline_stage", "lead_source", "interest_area", "follow_up_status"],
+      "required": [
+        "pipeline_stage",
+        "lead_source",
+        "interest_area",
+        "follow_up_status"
+      ],
       "properties": {
         "pipeline_stage": {
           "type": "string",
-          "enum": ["New Lead", "New Qualified Lead", "Human Review", "Low Priority", "Spam"]
+          "enum": [
+            "New Lead",
+            "New Qualified Lead",
+            "Human Review",
+            "Low Priority",
+            "Spam"
+          ]
         },
         "lead_source": {
           "type": "string",

@@ -7,7 +7,7 @@ import { createNormalizedLead } from "./fixtures.js";
 
 const provider = new MockProvider({
   provider: "mock",
-  model: "demo-leadops-model"
+  model: "demo-leadops-model",
 });
 
 describe("MockProvider", () => {
@@ -25,9 +25,9 @@ describe("MockProvider", () => {
         source: "facebook_ad",
         content: {
           message: "Interested in automating customer follow-up.",
-          transcript: null
-        }
-      })
+          transcript: null,
+        },
+      }),
     );
 
     assert.deepEqual(aiQualificationOutputSchema.parse(output), output);
@@ -40,9 +40,10 @@ describe("MockProvider", () => {
         source: "missed_call_transcript",
         content: {
           message: null,
-          transcript: "Hi, I need a quote for commercial cleaning next week. Please call me back."
-        }
-      })
+          transcript:
+            "Hi, I need a quote for commercial cleaning next week. Please call me back.",
+        },
+      }),
     );
 
     assert.deepEqual(aiQualificationOutputSchema.parse(output), output);
@@ -55,9 +56,9 @@ describe("MockProvider", () => {
       createNormalizedLead({
         content: {
           message: "Claim this crypto giveaway now. Unsubscribe me.",
-          transcript: null
-        }
-      })
+          transcript: null,
+        },
+      }),
     );
 
     assert.deepEqual(aiQualificationOutputSchema.parse(output), output);

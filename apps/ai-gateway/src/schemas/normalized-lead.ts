@@ -12,34 +12,34 @@ export const normalizedLeadSchema = z
         name: optionalNullableText,
         email: z.string().email().nullable().optional(),
         phone: optionalNullableText,
-        company: optionalNullableText
+        company: optionalNullableText,
       })
       .strict()
       .refine((contact) => Boolean(contact.email || contact.phone), {
-        message: "Provide at least one contact method"
+        message: "Provide at least one contact method",
       }),
     content: z
       .object({
         message: optionalNullableText,
-        transcript: optionalNullableText
+        transcript: optionalNullableText,
       })
       .strict()
       .refine((content) => Boolean(content.message || content.transcript), {
-        message: "Provide message or transcript content"
+        message: "Provide message or transcript content",
       }),
     metadata: z
       .object({
         campaign: z.string().nullable(),
         language: z.string().min(2),
-        external_id: z.string().nullable()
+        external_id: z.string().nullable(),
       })
       .strict(),
-    raw_input: z.record(z.unknown())
+    raw_input: z.record(z.unknown()),
   })
   .strict();
 
 export const qualifyLeadRequestSchema = z
   .object({
-    lead: normalizedLeadSchema
+    lead: normalizedLeadSchema,
   })
   .strict();

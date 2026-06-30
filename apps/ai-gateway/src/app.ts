@@ -8,8 +8,8 @@ import { registerQualifyLeadRoute } from "./routes/qualify-lead.js";
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
-      level: config.logLevel
-    }
+      level: config.logLevel,
+    },
   });
 
   await registerHealthRoute(app, config);

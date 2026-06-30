@@ -29,13 +29,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   if (provider !== "mock" || !supportedProviders.has(provider)) {
-    throw new AppError("AI_PROVIDER_FAILED", `Unsupported AI provider: ${provider}`, 500);
+    throw new AppError(
+      "AI_PROVIDER_FAILED",
+      `Unsupported AI provider: ${provider}`,
+      500,
+    );
   }
 
   return {
     port,
     logLevel: env.LOG_LEVEL ?? "info",
     aiProvider: provider,
-    aiModel: env.AI_MODEL ?? "demo-leadops-model"
+    aiModel: env.AI_MODEL ?? "demo-leadops-model",
   };
 }

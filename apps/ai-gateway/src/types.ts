@@ -1,6 +1,14 @@
-export type LeadSource = "website_form" | "facebook_ad" | "missed_call_transcript";
+export type LeadSource =
+  | "website_form"
+  | "facebook_ad"
+  | "missed_call_transcript";
 
-export type LeadType = "Sales Inquiry" | "Support Request" | "Partnership" | "Spam" | "Other";
+export type LeadType =
+  | "Sales Inquiry"
+  | "Support Request"
+  | "Partnership"
+  | "Spam"
+  | "Other";
 
 export type LeadIntent =
   | "Book Consultation"
@@ -46,7 +54,12 @@ export interface AIQualificationOutput {
   readonly suggested_email_reply: string;
   readonly suggested_sms_reply: string;
   readonly crm_fields: {
-    readonly pipeline_stage: "New Lead" | "New Qualified Lead" | "Human Review" | "Low Priority" | "Spam";
+    readonly pipeline_stage:
+      | "New Lead"
+      | "New Qualified Lead"
+      | "Human Review"
+      | "Low Priority"
+      | "Spam";
     readonly lead_source: string;
     readonly interest_area: string | null;
     readonly follow_up_status: "Draft Created" | "Needs Review" | "No Action";

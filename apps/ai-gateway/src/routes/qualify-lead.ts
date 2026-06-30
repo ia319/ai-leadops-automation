@@ -7,10 +7,13 @@ import { createAIProvider } from "../providers/index.js";
 import { aiQualificationOutputSchema } from "../schemas/ai-qualification-output.js";
 import { qualifyLeadRequestSchema } from "../schemas/normalized-lead.js";
 
-export async function registerQualifyLeadRoute(app: FastifyInstance, config: AppConfig): Promise<void> {
+export async function registerQualifyLeadRoute(
+  app: FastifyInstance,
+  config: AppConfig,
+): Promise<void> {
   const provider = createAIProvider({
     provider: config.aiProvider,
-    model: config.aiModel
+    model: config.aiModel,
   });
 
   app.post("/v1/qualify-lead", async (request, reply) => {
@@ -25,12 +28,14 @@ export async function registerQualifyLeadRoute(app: FastifyInstance, config: App
         output: validatedOutput,
         usage: {
           input_tokens: 0,
-          output_tokens: 0
-        }
+          output_tokens: 0,
+        },
       };
     } catch (error) {
       const appError = normalizeRouteError(error);
-      return reply.status(appError.statusCode).send(buildErrorResponse(appError));
+      return reply
+        .status(appError.statusCode)
+        .send(buildErrorResponse(appError));
     }
   });
 }
@@ -41,9 +46,14 @@ function normalizeRouteError(error: unknown): AppError {
   }
 
   if (error instanceof ZodError) {
-    return new AppError("INVALID_INPUT", "Request body failed validation", 400, {
-      issues: error.issues
-    });
+    return new AppError(
+      "INVALID_INPUT",
+      "Request body failed validation",
+      400,
+      {
+        issues: error.issues,
+      },
+    );
   }
 
   return new AppError("UNKNOWN_ERROR", "Lead qualification failed", 500);

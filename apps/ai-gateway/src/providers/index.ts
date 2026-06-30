@@ -7,5 +7,9 @@ export function createAIProvider(config: AIProviderConfig): AIProvider {
     return new MockProvider(config);
   }
 
-  throw new AppError("AI_PROVIDER_FAILED", `Unsupported AI provider: ${config.provider}`, 500);
+  throw new AppError(
+    "AI_PROVIDER_FAILED",
+    `Unsupported AI provider: ${config.provider}`,
+    500,
+  );
 }

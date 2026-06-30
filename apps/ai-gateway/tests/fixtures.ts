@@ -7,7 +7,9 @@ export async function readJsonFixture<T>(path: string): Promise<T> {
   return JSON.parse(content) as T;
 }
 
-export function createNormalizedLead(overrides: Partial<NormalizedLead> = {}): NormalizedLead {
+export function createNormalizedLead(
+  overrides: Partial<NormalizedLead> = {},
+): NormalizedLead {
   return {
     lead_id: "lead_test_001",
     source: "website_form",
@@ -16,18 +18,19 @@ export function createNormalizedLead(overrides: Partial<NormalizedLead> = {}): N
       name: "Sarah Lee",
       email: "sarah@example.com",
       phone: "+15551234567",
-      company: "GrowthPilot"
+      company: "GrowthPilot",
     },
     content: {
-      message: "We need help automating appointment booking and lead follow-up.",
-      transcript: null
+      message:
+        "We need help automating appointment booking and lead follow-up.",
+      transcript: null,
     },
     metadata: {
       campaign: null,
       language: "en",
-      external_id: null
+      external_id: null,
     },
     raw_input: {},
-    ...overrides
+    ...overrides,
   };
 }

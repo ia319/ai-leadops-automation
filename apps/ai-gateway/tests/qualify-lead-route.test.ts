@@ -11,7 +11,7 @@ const config: AppConfig = {
   port: 8787,
   logLevel: "silent",
   aiProvider: "mock",
-  aiModel: "demo-leadops-model"
+  aiModel: "demo-leadops-model",
 };
 
 describe("AI Gateway routes", () => {
@@ -19,13 +19,13 @@ describe("AI Gateway routes", () => {
     const app = await buildApp(config);
     const response = await app.inject({
       method: "GET",
-      url: "/health"
+      url: "/health",
     });
 
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), {
       status: "ok",
-      provider: "mock"
+      provider: "mock",
     });
     await app.close();
   });
@@ -36,8 +36,8 @@ describe("AI Gateway routes", () => {
       method: "POST",
       url: "/v1/qualify-lead",
       payload: {
-        lead: createNormalizedLead()
-      }
+        lead: createNormalizedLead(),
+      },
     });
     const body = response.json<QualificationResponse>();
 
@@ -54,8 +54,8 @@ describe("AI Gateway routes", () => {
       method: "POST",
       url: "/v1/qualify-lead",
       payload: {
-        source: "website_form"
-      }
+        source: "website_form",
+      },
     });
     const body = response.json<{ status: string; error: { code: string } }>();
 
@@ -66,11 +66,13 @@ describe("AI Gateway routes", () => {
   });
 
   it("rejects unsupported provider config", () => {
-    assert.throws(() =>
-      loadConfig({
-        AI_PROVIDER: "unsupported",
-        PORT: "8787"
-      })
-    , /Unsupported AI provider: unsupported/);
+    assert.throws(
+      () =>
+        loadConfig({
+          AI_PROVIDER: "unsupported",
+          PORT: "8787",
+        }),
+      /Unsupported AI provider: unsupported/,
+    );
   });
 });
