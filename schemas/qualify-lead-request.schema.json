@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/qualify-lead-request.schema.json",
+  "title": "QualifyLeadRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lead"],
+  "properties": {
+    "lead": {
+      "$ref": "https://example.com/schemas/normalized-lead.schema.json"
+    }
+  }
+}

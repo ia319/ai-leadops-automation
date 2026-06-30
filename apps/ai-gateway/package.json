@@ -12,14 +12,15 @@
     "lint": "pnpm run typecheck"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.106.0",
+    "ajv": "8.16.0",
+    "ajv-formats": "3.0.1",
     "dotenv": "16.4.5",
     "fastify": "4.28.1",
-    "zod": "3.23.8"
+    "openai": "6.45.0"
   },
   "devDependencies": {
     "@types/node": "20.14.10",
-    "ajv": "8.16.0",
-    "ajv-formats": "3.0.1",
     "tsx": "4.16.2",
     "typescript": "5.5.3"
   }

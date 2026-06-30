@@ -1,5 +1,9 @@
 import type { AIQualificationOutput, NormalizedLead } from "../types.js";
-import type { AIProvider, AIProviderConfig } from "./types.js";
+import type {
+  AIProvider,
+  AIProviderConfig,
+  AIProviderResult,
+} from "./types.js";
 
 export class MockProvider implements AIProvider {
   private readonly config: AIProviderConfig;
@@ -8,12 +12,12 @@ export class MockProvider implements AIProvider {
     this.config = config;
   }
 
-  async qualifyLead(input: NormalizedLead): Promise<AIQualificationOutput> {
+  async qualifyLead(input: NormalizedLead): Promise<AIProviderResult> {
     const text =
       `${input.content.message ?? ""} ${input.content.transcript ?? ""}`.toLowerCase();
 
     if (containsAny(text, ["spam", "unsubscribe", "crypto giveaway"])) {
-      return this.buildLowPriorityOutput(input);
+      return buildProviderResult(this.buildLowPriorityOutput(input));
     }
 
     if (
@@ -26,10 +30,10 @@ export class MockProvider implements AIProvider {
         "call me back",
       ])
     ) {
-      return this.buildHighPriorityOutput(input);
+      return buildProviderResult(this.buildHighPriorityOutput(input));
     }
 
-    return this.buildMediumPriorityOutput(input);
+    return buildProviderResult(this.buildMediumPriorityOutput(input));
   }
 
   get model(): string {
@@ -122,4 +126,14 @@ export class MockProvider implements AIProvider {
 
 function containsAny(value: string, needles: readonly string[]): boolean {
   return needles.some((needle) => value.includes(needle));
+}
+
+function buildProviderResult(output: AIQualificationOutput): AIProviderResult {
+  return {
+    output,
+    usage: {
+      input_tokens: 0,
+      output_tokens: 0,
+    },
+  };
 }
