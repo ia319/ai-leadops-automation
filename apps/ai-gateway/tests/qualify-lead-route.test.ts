@@ -12,6 +12,10 @@ const config: AppConfig = {
   logLevel: "silent",
   aiProvider: "mock",
   aiModel: "demo-leadops-model",
+  aiTemperature: 0.2,
+  aiMaxTokens: 1200,
+  aiTimeoutMs: 30000,
+  aiRetryCount: 2,
 };
 
 describe("AI Gateway routes", () => {
@@ -73,6 +77,44 @@ describe("AI Gateway routes", () => {
           PORT: "8787",
         }),
       /Unsupported AI provider: unsupported/,
+    );
+  });
+
+  it("loads OpenAI provider config", () => {
+    const loadedConfig = loadConfig({
+      AI_PROVIDER: "openai",
+      OPENAI_API_KEY: "test-key",
+      OPENAI_MODEL: "test-model",
+      PORT: "8787",
+    });
+
+    assert.equal(loadedConfig.aiProvider, "openai");
+    assert.equal(loadedConfig.aiModel, "test-model");
+    assert.equal(loadedConfig.aiApiKey, "test-key");
+  });
+
+  it("rejects missing provider credentials", () => {
+    assert.throws(
+      () =>
+        loadConfig({
+          AI_PROVIDER: "openai",
+          OPENAI_MODEL: "test-model",
+          PORT: "8787",
+        }),
+      /OPENAI_API_KEY is required/,
+    );
+  });
+
+  it("requires provider-specific model config for real providers", () => {
+    assert.throws(
+      () =>
+        loadConfig({
+          AI_PROVIDER: "openai",
+          AI_MODEL: "demo-leadops-model",
+          OPENAI_API_KEY: "test-key",
+          PORT: "8787",
+        }),
+      /OPENAI_MODEL is required/,
     );
   });
 });

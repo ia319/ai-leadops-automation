@@ -12,6 +12,7 @@ const Ajv2020 = require("ajv/dist/2020");
 const addFormats = require("ajv-formats") as (ajv: AjvInstance) => AjvInstance;
 
 interface AjvInstance {
+  addSchema(schema: AnySchema): AjvInstance;
   compile(schema: AnySchema): ValidateFunction;
 }
 
@@ -58,6 +59,24 @@ describe("schema validation", () => {
     );
 
     assert.equal(validate(request.lead), true);
+  });
+
+  it("validates qualification request examples", async () => {
+    const ajv = addFormats(new Ajv2020({ allErrors: true }));
+    const normalizedLeadSchema = await readJson<object>(
+      "schemas/normalized-lead.schema.json",
+    );
+    const schema = await readJson<object>(
+      "schemas/qualify-lead-request.schema.json",
+    );
+    ajv.addSchema(normalizedLeadSchema);
+    const validate = ajv.compile(schema);
+    const request = await readJson(
+      "examples/inputs/website-form-normalized.json",
+    );
+
+    assert.equal(validate(request), true);
+    assert.equal(validate({ source: "website_form" }), false);
   });
 
   it("validates qualification output examples", async () => {
