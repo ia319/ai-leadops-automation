@@ -98,6 +98,49 @@ describe("schema validation", () => {
     assert.equal(validate({ ...validOutput, lead_score: 101 }), false);
   });
 
+  it("validates CRM records", async () => {
+    const ajv = addFormats(new Ajv2020({ allErrors: true }));
+    const schema = await readJson<object>("schemas/crm-record.schema.json");
+    const validate = ajv.compile(schema);
+    const validRecord = {
+      lead_id: "lead_test_001",
+      received_at: "2026-06-29T19:20:00Z",
+      source: "website_form",
+      name: "Sarah Lee",
+      email: "sarah@example.com",
+      phone: "+15551234567",
+      company: "GrowthPilot",
+      lead_type: "Sales Inquiry",
+      intent: "Book Consultation",
+      priority: "High",
+      lead_score: 86,
+      service_requested: "Appointment booking automation",
+      pain_point: "Manual scheduling and delayed follow-up",
+      lead_summary:
+        "The lead wants help automating appointment booking and lead follow-up.",
+      recommended_next_step:
+        "Send a booking link and ask about current scheduling tools.",
+      pipeline_stage: "New Qualified Lead",
+      follow_up_status: "Draft Created",
+      email_draft: "Hi Sarah, thanks for reaching out.",
+      sms_draft: "Hi Sarah, would you like to schedule a quick consultation?",
+      booking_link: "https://calendly.com/demo/intro-call",
+      status: "DRAFT_CREATED",
+      error_code: null,
+    };
+
+    assert.equal(validate(validRecord), true);
+    assert.equal(validate({ ...validRecord, lead_score: 101 }), false);
+    assert.equal(
+      validate({ ...validRecord, pipeline_stage: "Contacted" }),
+      false,
+    );
+    assert.equal(
+      validate({ ...validRecord, extra_field: "unexpected" }),
+      false,
+    );
+  });
+
   it("validates error response examples", async () => {
     const ajv = addFormats(new Ajv2020({ allErrors: true }));
     const schema = await readJson<object>("schemas/api-error.schema.json");
