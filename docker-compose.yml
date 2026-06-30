@@ -1,0 +1,8 @@
+services:
+  ai-gateway:
+    build:
+      context: ./apps/ai-gateway
+    env_file:
+      - .env
+    ports:
+      - "8787:8787"
