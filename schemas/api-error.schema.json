@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/api-error.schema.json",
+  "title": "ApiError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "error"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "const": "error"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_INPUT",
+            "MISSING_CONTACT_METHOD",
+            "MISSING_MESSAGE_CONTENT",
+            "UNSUPPORTED_SOURCE",
+            "AI_GATEWAY_FAILED",
+            "AI_PROVIDER_FAILED",
+            "AI_PARSE_FAILED",
+            "AI_SCHEMA_VALIDATION_FAILED",
+            "CRM_WRITE_FAILED",
+            "SLACK_NOTIFY_FAILED",
+            "GMAIL_DRAFT_FAILED",
+            "UNKNOWN_ERROR"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

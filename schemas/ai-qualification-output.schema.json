@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ai-qualification-output.schema.json",
+  "title": "AIQualificationOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lead_summary",
+    "lead_type",
+    "intent",
+    "priority",
+    "lead_score",
+    "service_requested",
+    "pain_point",
+    "recommended_next_step",
+    "needs_human_followup",
+    "suggested_email_reply",
+    "suggested_sms_reply",
+    "crm_fields"
+  ],
+  "properties": {
+    "lead_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lead_type": {
+      "type": "string",
+      "enum": ["Sales Inquiry", "Support Request", "Partnership", "Spam", "Other"]
+    },
+    "intent": {
+      "type": "string",
+      "enum": ["Book Consultation", "Request Quote", "Ask Question", "Follow Up", "Other"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["High", "Medium", "Low"]
+    },
+    "lead_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "service_requested": {
+      "type": ["string", "null"]
+    },
+    "pain_point": {
+      "type": ["string", "null"]
+    },
+    "recommended_next_step": {
+      "type": "string",
+      "minLength": 1
+    },
+    "needs_human_followup": {
+      "type": "boolean"
+    },
+    "suggested_email_reply": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suggested_sms_reply": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "crm_fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pipeline_stage", "lead_source", "interest_area", "follow_up_status"],
+      "properties": {
+        "pipeline_stage": {
+          "type": "string",
+          "enum": ["New Lead", "New Qualified Lead", "Human Review", "Low Priority", "Spam"]
+        },
+        "lead_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interest_area": {
+          "type": ["string", "null"]
+        },
+        "follow_up_status": {
+          "type": "string",
+          "enum": ["Draft Created", "Needs Review", "No Action"]
+        }
+      }
+    }
+  }
+}

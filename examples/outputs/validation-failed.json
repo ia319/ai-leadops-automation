@@ -1,0 +1,10 @@
+{
+  "status": "error",
+  "error": {
+    "code": "MISSING_CONTACT_METHOD",
+    "message": "Provide at least one contact method.",
+    "details": {
+      "required_any": ["email", "phone"]
+    }
+  }
+}

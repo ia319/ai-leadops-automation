@@ -1,0 +1,19 @@
+{
+  "lead_summary": "The lead is interested in automating customer follow-up.",
+  "lead_type": "Sales Inquiry",
+  "intent": "Ask Question",
+  "priority": "Medium",
+  "lead_score": 58,
+  "service_requested": "Customer follow-up automation",
+  "pain_point": "Manual follow-up process",
+  "recommended_next_step": "Ask about current follow-up volume and target response time.",
+  "needs_human_followup": false,
+  "suggested_email_reply": "Hi Michael, thanks for reaching out. I can help review your current follow-up process and identify automation opportunities. Could you share your current lead volume and response workflow?",
+  "suggested_sms_reply": "Hi Michael, thanks for your interest. Could you share your current lead volume and follow-up process?",
+  "crm_fields": {
+    "pipeline_stage": "New Lead",
+    "lead_source": "facebook_ad",
+    "interest_area": "Automation consulting",
+    "follow_up_status": "Needs Review"
+  }
+}

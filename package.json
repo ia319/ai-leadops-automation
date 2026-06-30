@@ -1,0 +1,17 @@
+{
+  "name": "ai-leadops-automation",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm --filter ai-gateway dev",
+    "build": "pnpm --filter ai-gateway build",
+    "test": "pnpm --filter ai-gateway test",
+    "lint": "pnpm --filter ai-gateway lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

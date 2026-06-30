@@ -1,0 +1,19 @@
+{
+  "lead_summary": "The message does not show a clear service request or buying intent.",
+  "lead_type": "Other",
+  "intent": "Other",
+  "priority": "Low",
+  "lead_score": 22,
+  "service_requested": null,
+  "pain_point": null,
+  "recommended_next_step": "Review manually only if additional context appears.",
+  "needs_human_followup": false,
+  "suggested_email_reply": "Hi, thanks for reaching out. Please send more detail about the service you need so we can route your request correctly.",
+  "suggested_sms_reply": "Thanks for reaching out. Please send more detail about the service you need.",
+  "crm_fields": {
+    "pipeline_stage": "Low Priority",
+    "lead_source": "website_form",
+    "interest_area": null,
+    "follow_up_status": "No Action"
+  }
+}

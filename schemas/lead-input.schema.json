@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/lead-input.schema.json",
+  "title": "LeadInput",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["source"],
+  "properties": {
+    "source": {
+      "type": "string",
+      "enum": ["website_form", "facebook_ad", "missed_call_transcript"]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string",
+      "minLength": 3
+    },
+    "company": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string"
+    },
+    "transcript": {
+      "type": "string"
+    },
+    "campaign": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "default": "en"
+    },
+    "external_id": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        { "required": ["email"] },
+        { "required": ["phone"] }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": ["message"],
+          "properties": {
+            "message": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "required": ["transcript"],
+          "properties": {
+            "transcript": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

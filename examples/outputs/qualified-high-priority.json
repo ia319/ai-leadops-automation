@@ -1,0 +1,19 @@
+{
+  "lead_summary": "The lead wants help automating appointment booking and lead follow-up.",
+  "lead_type": "Sales Inquiry",
+  "intent": "Book Consultation",
+  "priority": "High",
+  "lead_score": 86,
+  "service_requested": "Appointment booking automation",
+  "pain_point": "Manual scheduling and delayed follow-up",
+  "recommended_next_step": "Send a booking link and ask about current scheduling tools.",
+  "needs_human_followup": true,
+  "suggested_email_reply": "Hi Sarah, thanks for reaching out. I can help automate your appointment booking and lead follow-up process. Could you share what tools you currently use for scheduling and customer communication?",
+  "suggested_sms_reply": "Hi Sarah, thanks for reaching out. I can help with booking and follow-up automation. Would you like to schedule a quick consultation?",
+  "crm_fields": {
+    "pipeline_stage": "New Qualified Lead",
+    "lead_source": "website_form",
+    "interest_area": "Automation consulting",
+    "follow_up_status": "Draft Created"
+  }
+}

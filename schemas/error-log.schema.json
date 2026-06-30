@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/error-log.schema.json",
+  "title": "ErrorLog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "error_id",
+    "lead_id",
+    "timestamp",
+    "workflow_name",
+    "node_name",
+    "error_code",
+    "error_message",
+    "status",
+    "raw_input",
+    "raw_ai_output"
+  ],
+  "properties": {
+    "error_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lead_id": {
+      "type": ["string", "null"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workflow_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "node_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "error_code": {
+      "type": "string",
+      "enum": [
+        "INVALID_INPUT",
+        "MISSING_CONTACT_METHOD",
+        "MISSING_MESSAGE_CONTENT",
+        "UNSUPPORTED_SOURCE",
+        "AI_GATEWAY_FAILED",
+        "AI_PROVIDER_FAILED",
+        "AI_PARSE_FAILED",
+        "AI_SCHEMA_VALIDATION_FAILED",
+        "CRM_WRITE_FAILED",
+        "SLACK_NOTIFY_FAILED",
+        "GMAIL_DRAFT_FAILED",
+        "UNKNOWN_ERROR"
+      ]
+    },
+    "error_message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["FAILED", "WARNING"]
+    },
+    "raw_input": {
+      "type": ["object", "null"]
+    },
+    "raw_ai_output": {
+      "type": ["object", "null"]
+    }
+  }
+}

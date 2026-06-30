@@ -1,0 +1,30 @@
+{
+  "lead": {
+    "lead_id": "lead_20260629_001",
+    "source": "website_form",
+    "received_at": "2026-06-29T19:20:00Z",
+    "contact": {
+      "name": "Sarah Lee",
+      "email": "sarah@example.com",
+      "phone": "+15551234567",
+      "company": "GrowthPilot"
+    },
+    "content": {
+      "message": "We need help automating our appointment booking and lead follow-up process.",
+      "transcript": null
+    },
+    "metadata": {
+      "campaign": null,
+      "language": "en",
+      "external_id": null
+    },
+    "raw_input": {
+      "source": "website_form",
+      "name": "Sarah Lee",
+      "email": "sarah@example.com",
+      "phone": "+15551234567",
+      "company": "GrowthPilot",
+      "message": "We need help automating our appointment booking and lead follow-up process."
+    }
+  }
+}
