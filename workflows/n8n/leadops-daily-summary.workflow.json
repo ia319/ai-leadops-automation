@@ -1,0 +1,167 @@
+{
+  "name": "AI LeadOps Daily Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-leads",
+      "name": "Read Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [220, 0],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ErrorLogs",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-errorlogs",
+      "name": "Read ErrorLogs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = $('Read Leads').all().map((item) => item.json).filter((row) => Object.keys(row).length > 0);\nconst errors = $('Read ErrorLogs').all().map((item) => item.json).filter((row) => Object.keys(row).length > 0);\nconst now = new Date();\nconst reportDate = now.toISOString().slice(0, 10);\nconst dayStart = new Date(reportDate + 'T00:00:00.000Z');\nfunction parseDate(value) {\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? null : date;\n}\nfunction isToday(value) {\n  const date = parseDate(value);\n  return Boolean(date && date >= dayStart && date <= now);\n}\nconst todayLeads = leads.filter((lead) => isToday(lead.received_at));\nconst todayErrors = errors.filter((error) => isToday(error.timestamp));\nconst priority_breakdown = { High: 0, Medium: 0, Low: 0 };\nconst source_counts = {};\nlet pending_followups = 0;\nfor (const lead of todayLeads) {\n  if (priority_breakdown[lead.priority] !== undefined) {\n    priority_breakdown[lead.priority] += 1;\n  }\n  const source = lead.source || 'unknown';\n  source_counts[source] = (source_counts[source] ?? 0) + 1;\n  if (['Draft Created', 'Needs Review'].includes(lead.follow_up_status)) {\n    pending_followups += 1;\n  }\n}\nconst top_sources = Object.entries(source_counts)\n  .sort(([, left], [, right]) => right - left)\n  .slice(0, 5)\n  .map(([source, count]) => ({ source, count }));\nconst error_breakdown = todayErrors.reduce((acc, error) => {\n  const code = error.error_code || 'UNKNOWN_ERROR';\n  acc[code] = (acc[code] ?? 0) + 1;\n  return acc;\n}, {});\nconst summary = {\n  date: reportDate,\n  generated_at: now.toISOString(),\n  total_leads: todayLeads.length,\n  priority_breakdown,\n  error_count: todayErrors.length,\n  error_breakdown,\n  pending_followups,\n  top_sources,\n  high_priority_leads: todayLeads.filter((lead) => lead.priority === 'High').map((lead) => ({\n    lead_id: lead.lead_id,\n    name: lead.name,\n    company: lead.company,\n    source: lead.source,\n    lead_score: Number(lead.lead_score ?? 0),\n    recommended_next_step: lead.recommended_next_step\n  }))\n};\nreturn [{ json: { summary } }];"
+      },
+      "id": "calculate-metrics",
+      "name": "Calculate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const summary = $input.first().json.summary;\nconst recipient = $env.DAILY_SUMMARY_RECIPIENT;\nif (!recipient) {\n  throw new Error('UNKNOWN_ERROR: DAILY_SUMMARY_RECIPIENT is required.');\n}\nfunction linesFromBreakdown(breakdown) {\n  const entries = Object.entries(breakdown);\n  return entries.length > 0 ? entries.map(([key, value]) => `- ${key}: ${value}`).join('\\n') : '- none';\n}\nconst topSources = summary.top_sources.length > 0 ? summary.top_sources.map((item) => `- ${item.source}: ${item.count}`).join('\\n') : '- none';\nconst highPriority = summary.high_priority_leads.length > 0 ? summary.high_priority_leads.map((lead) => `- ${lead.lead_id}: ${lead.name ?? lead.company ?? 'unknown'} (${lead.lead_score}) - ${lead.recommended_next_step}`).join('\\n') : '- none';\nconst text = `Daily LeadOps Summary - ${summary.date}\\n\\nTotals\\n- leads: ${summary.total_leads}\\n- errors: ${summary.error_count}\\n- pending follow-ups: ${summary.pending_followups}\\n\\nPriority breakdown\\n${linesFromBreakdown(summary.priority_breakdown)}\\n\\nError breakdown\\n${linesFromBreakdown(summary.error_breakdown)}\\n\\nTop sources\\n${topSources}\\n\\nHigh-priority leads\\n${highPriority}\\n\\nGenerated at: ${summary.generated_at}`;\nreturn [{\n  json: {\n    summary,\n    email: {\n      to: recipient,\n      subject: `Daily LeadOps Summary - ${summary.date}`,\n      body: text\n    }\n  }\n}];"
+      },
+      "id": "build-summary-email",
+      "name": "Build Summary Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email.to }}",
+        "subject": "={{ $json.email.subject }}",
+        "message": "={{ $json.email.body }}",
+        "options": {}
+      },
+      "id": "send-summary-email",
+      "name": "Send Summary Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1100, 0]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads": {
+      "main": [
+        [
+          {
+            "node": "Read ErrorLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read ErrorLogs": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Email": {
+      "main": [
+        [
+          {
+            "node": "Send Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-30T00:00:00.000Z",
+  "versionId": "leadops-daily-summary-v1"
+}

@@ -1,0 +1,262 @@
+{
+  "name": "AI LeadOps Demo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadops-demo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "leadops-demo-webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body ?? $input.first().json;\nfunction createLeadId() {\n  if (globalThis.crypto?.randomUUID) {\n    return `lead_${globalThis.crypto.randomUUID()}`;\n  }\n  return `lead_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;\n}\nconst lead = {\n  lead_id: input.lead_id ?? createLeadId(),\n  source: input.source,\n  received_at: input.received_at ?? new Date().toISOString(),\n  contact: {\n    name: input.name ?? null,\n    email: input.email ?? null,\n    phone: input.phone ?? null,\n    company: input.company ?? null\n  },\n  content: {\n    message: input.message ?? null,\n    transcript: input.transcript ?? null\n  },\n  metadata: {\n    campaign: input.campaign ?? null,\n    language: input.language ?? 'en',\n    external_id: input.external_id ?? null\n  },\n  raw_input: input\n};\nreturn [{ json: { lead, raw_input: input } }];"
+      },
+      "id": "normalize-lead",
+      "name": "Normalize Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst lead = data.lead;\nconst errors = [];\nif (!['website_form', 'facebook_ad', 'missed_call_transcript'].includes(lead.source)) errors.push('UNSUPPORTED_SOURCE');\nif (!lead.contact.email && !lead.contact.phone) errors.push('MISSING_CONTACT_METHOD');\nif (!lead.content.message && !lead.content.transcript) errors.push('MISSING_MESSAGE_CONTENT');\nif (errors.length > 0) {\n  return [{\n    json: {\n      status: 'error',\n      error: {\n        code: errors[0],\n        message: 'Lead input failed validation.',\n        details: { errors }\n      },\n      raw_input: data.raw_input\n    }\n  }];\n}\nreturn [{ json: data }];"
+      },
+      "id": "validate-lead",
+      "name": "Validate Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst lead = data.lead;\nconst text = `${lead.content.message ?? ''} ${lead.content.transcript ?? ''}`.toLowerCase();\nlet output;\nif (text.includes('spam') || text.includes('unsubscribe') || text.includes('crypto giveaway')) {\n  output = {\n    lead_summary: 'The message appears to be spam or not a legitimate service inquiry.',\n    lead_type: 'Spam',\n    intent: 'Other',\n    priority: 'Low',\n    lead_score: 22,\n    service_requested: null,\n    pain_point: null,\n    recommended_next_step: 'Review manually only if additional context appears.',\n    needs_human_followup: false,\n    suggested_email_reply: 'Hi, thanks for reaching out. Please send more detail about the service you need so we can route your request correctly.',\n    suggested_sms_reply: 'Thanks for reaching out. Please send more detail about the service you need.',\n    crm_fields: {\n      pipeline_stage: 'Spam',\n      lead_source: lead.source,\n      interest_area: null,\n      follow_up_status: 'No Action'\n    }\n  };\n} else if (text.includes('book') || text.includes('booking') || text.includes('appointment') || text.includes('consultation') || text.includes('quote') || text.includes('call me back')) {\n  output = {\n    lead_summary: 'The lead wants help with booking, quoting, or follow-up automation.',\n    lead_type: 'Sales Inquiry',\n    intent: lead.content.transcript ? 'Request Quote' : 'Book Consultation',\n    priority: 'High',\n    lead_score: 86,\n    service_requested: lead.content.transcript ? 'Service quote' : 'Appointment booking automation',\n    pain_point: 'Manual scheduling and delayed follow-up',\n    recommended_next_step: 'Send a booking link and ask about current scheduling tools.',\n    needs_human_followup: true,\n    suggested_email_reply: 'Hi, thanks for reaching out. I can help review your booking and follow-up process. Could you share what tools you currently use?',\n    suggested_sms_reply: 'Hi, thanks for reaching out. I can help with booking and follow-up automation. Would you like to schedule a quick consultation?',\n    crm_fields: {\n      pipeline_stage: 'New Qualified Lead',\n      lead_source: lead.source,\n      interest_area: 'Automation consulting',\n      follow_up_status: 'Draft Created'\n    }\n  };\n} else {\n  output = {\n    lead_summary: 'The lead shows general interest in automation.',\n    lead_type: 'Sales Inquiry',\n    intent: 'Ask Question',\n    priority: 'Medium',\n    lead_score: 58,\n    service_requested: 'Customer follow-up automation',\n    pain_point: 'Manual follow-up process',\n    recommended_next_step: 'Ask about current follow-up volume and target response time.',\n    needs_human_followup: false,\n    suggested_email_reply: 'Hi, thanks for reaching out. I can help review your current follow-up process and identify automation opportunities.',\n    suggested_sms_reply: 'Hi, thanks for your interest. Could you share your current lead volume and follow-up process?',\n    crm_fields: {\n      pipeline_stage: 'New Lead',\n      lead_source: lead.source,\n      interest_area: 'Automation consulting',\n      follow_up_status: 'Needs Review'\n    }\n  };\n}\nreturn [{ json: { ...data, ai_gateway_response: { provider: 'mock', model: 'demo-leadops-model', output, usage: { input_tokens: 0, output_tokens: 0 } } } }];"
+      },
+      "id": "mock-ai-gateway-response",
+      "name": "Mock AI Gateway Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst output = data.ai_gateway_response.output;\nconst required = ['lead_summary', 'lead_type', 'intent', 'priority', 'lead_score', 'recommended_next_step', 'suggested_email_reply', 'suggested_sms_reply', 'crm_fields'];\nconst missing = required.filter((field) => output[field] === undefined || output[field] === null);\nif (missing.length > 0 || output.lead_score < 0 || output.lead_score > 100) {\n  return [{\n    json: {\n      status: 'error',\n      error: {\n        code: 'AI_SCHEMA_VALIDATION_FAILED',\n        message: 'Mock AI output failed schema validation.',\n        details: { missing }\n      },\n      raw_ai_output: output,\n      raw_input: data.raw_input\n    }\n  }];\n}\nreturn [{ json: data }];"
+      },
+      "id": "validate-ai-output",
+      "name": "Validate AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst lead = data.lead;\nconst output = data.ai_gateway_response.output;\nconst statusByFollowUp = {\n  'Draft Created': 'DRAFT_CREATED',\n  'Needs Review': 'NEEDS_REVIEW',\n  'No Action': 'NO_ACTION'\n};\nconst crm = {\n  lead_id: lead.lead_id,\n  received_at: lead.received_at,\n  source: lead.source,\n  name: lead.contact.name,\n  email: lead.contact.email,\n  phone: lead.contact.phone,\n  company: lead.contact.company,\n  lead_type: output.lead_type,\n  intent: output.intent,\n  priority: output.priority,\n  lead_score: output.lead_score,\n  service_requested: output.service_requested,\n  pain_point: output.pain_point,\n  lead_summary: output.lead_summary,\n  recommended_next_step: output.recommended_next_step,\n  pipeline_stage: output.crm_fields.pipeline_stage,\n  follow_up_status: output.crm_fields.follow_up_status,\n  email_draft: output.suggested_email_reply,\n  sms_draft: output.suggested_sms_reply,\n  booking_link: null,\n  status: statusByFollowUp[output.crm_fields.follow_up_status] ?? 'NEEDS_REVIEW',\n  error_code: null\n};\nreturn [{ json: { ...data, crm_record: crm } }];"
+      },
+      "id": "build-crm-record",
+      "name": "Build CRM Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst crm = data.crm_record;\nconst slack_alert = crm.lead_score >= 75 ? {\n  channel: '#sales',\n  text: `High-priority lead: ${crm.name ?? crm.phone ?? crm.email}`,\n  fields: {\n    lead_id: crm.lead_id,\n    company: crm.company,\n    source: crm.source,\n    priority: crm.priority,\n    lead_score: crm.lead_score,\n    intent: crm.intent,\n    recommended_next_step: crm.recommended_next_step\n  }\n} : null;\nreturn [{ json: { ...data, slack_alert } }];"
+      },
+      "id": "mock-slack-alert",
+      "name": "Mock Slack Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst crm = data.crm_record;\nconst gmail_draft = crm.email ? {\n  to: crm.email,\n  subject: `Re: ${crm.service_requested ?? 'Your inquiry'}`,\n  body: crm.email_draft\n} : null;\nreturn [{ json: { ...data, gmail_draft } }];"
+      },
+      "id": "mock-gmail-draft",
+      "name": "Mock Gmail Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst crm = data.crm_record;\nconst sms_draft = crm.phone ? {\n  phone: crm.phone,\n  body: crm.sms_draft,\n  status: 'draft_created'\n} : null;\nreturn [{ json: { ...data, sms_draft } }];"
+      },
+      "id": "mock-sms-draft",
+      "name": "Mock SMS Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst booking_link = data.ai_gateway_response.output.intent === 'Book Consultation' ? 'https://calendly.com/demo/intro-call' : null;\nconst gmail_draft = data.gmail_draft && booking_link ? { ...data.gmail_draft, body: `${data.gmail_draft.body}\\n\\nBooking link: ${booking_link}` } : data.gmail_draft;\nconst crm_record = {\n  ...data.crm_record,\n  booking_link,\n  email_draft: gmail_draft ? gmail_draft.body : data.crm_record.email_draft\n};\nreturn [{ json: { ...data, booking_link, gmail_draft, crm_record } }];"
+      },
+      "id": "attach-booking-link",
+      "name": "Attach Booking Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.status === 'error') return [{ json: data }];\nconst crm = data.crm_record;\nreturn [{\n  json: {\n    status: 'success',\n    lead_id: crm.lead_id,\n    priority: crm.priority,\n    lead_score: crm.lead_score,\n    crm_record_created: true,\n    slack_alert_sent: Boolean(data.slack_alert),\n    gmail_draft_created: Boolean(data.gmail_draft),\n    sms_draft_created: Boolean(data.sms_draft),\n    booking_link_attached: Boolean(data.booking_link),\n    next_step: 'Review the generated drafts and contact the lead.',\n    demo_outputs: {\n      crm_record: crm,\n      slack_alert: data.slack_alert,\n      gmail_draft: data.gmail_draft,\n      sms_draft: data.sms_draft,\n      booking_link: data.booking_link\n    }\n  }\n}];"
+      },
+      "id": "build-final-response",
+      "name": "Build Final Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2420, 0]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead": {
+      "main": [
+        [
+          {
+            "node": "Mock AI Gateway Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock AI Gateway Response": {
+      "main": [
+        [
+          {
+            "node": "Validate AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate AI Output": {
+      "main": [
+        [
+          {
+            "node": "Build CRM Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CRM Record": {
+      "main": [
+        [
+          {
+            "node": "Mock Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Slack Alert": {
+      "main": [
+        [
+          {
+            "node": "Mock Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Mock SMS Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock SMS Draft": {
+      "main": [
+        [
+          {
+            "node": "Attach Booking Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Booking Link": {
+      "main": [
+        [
+          {
+            "node": "Build Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-30T00:00:00.000Z",
+  "versionId": "leadops-demo-v1"
+}

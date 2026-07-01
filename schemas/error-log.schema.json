@@ -62,10 +62,12 @@
       "enum": ["FAILED", "WARNING"]
     },
     "raw_input": {
-      "type": ["object", "null"]
+      "type": ["string", "null"],
+      "description": "Redacted JSON string written to the ErrorLogs sheet."
     },
     "raw_ai_output": {
-      "type": ["object", "null"]
+      "type": ["string", "null"],
+      "description": "Redacted JSON string written to the ErrorLogs sheet."
     }
   }
 }

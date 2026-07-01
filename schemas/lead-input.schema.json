@@ -45,10 +45,7 @@
   },
   "allOf": [
     {
-      "anyOf": [
-        { "required": ["email"] },
-        { "required": ["phone"] }
-      ]
+      "anyOf": [{ "required": ["email"] }, { "required": ["phone"] }]
     },
     {
       "anyOf": [

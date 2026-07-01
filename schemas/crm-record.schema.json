@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/crm-record.schema.json",
+  "title": "CRMRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lead_id",
+    "received_at",
+    "source",
+    "name",
+    "email",
+    "phone",
+    "company",
+    "lead_type",
+    "intent",
+    "priority",
+    "lead_score",
+    "service_requested",
+    "pain_point",
+    "lead_summary",
+    "recommended_next_step",
+    "pipeline_stage",
+    "follow_up_status",
+    "email_draft",
+    "sms_draft",
+    "booking_link",
+    "status",
+    "error_code"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["website_form", "facebook_ad", "missed_call_transcript"]
+    },
+    "name": {
+      "type": ["string", "null"]
+    },
+    "email": {
+      "type": ["string", "null"],
+      "format": "email"
+    },
+    "phone": {
+      "type": ["string", "null"]
+    },
+    "company": {
+      "type": ["string", "null"]
+    },
+    "lead_type": {
+      "type": "string",
+      "enum": [
+        "Sales Inquiry",
+        "Support Request",
+        "Partnership",
+        "Spam",
+        "Other"
+      ]
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "Book Consultation",
+        "Request Quote",
+        "Ask Question",
+        "Follow Up",
+        "Other"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["High", "Medium", "Low"]
+    },
+    "lead_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "service_requested": {
+      "type": ["string", "null"]
+    },
+    "pain_point": {
+      "type": ["string", "null"]
+    },
+    "lead_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recommended_next_step": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pipeline_stage": {
+      "type": "string",
+      "enum": [
+        "New Lead",
+        "New Qualified Lead",
+        "Human Review",
+        "Low Priority",
+        "Spam"
+      ]
+    },
+    "follow_up_status": {
+      "type": "string",
+      "enum": ["Draft Created", "Needs Review", "No Action"]
+    },
+    "email_draft": {
+      "type": ["string", "null"]
+    },
+    "sms_draft": {
+      "type": ["string", "null"],
+      "maxLength": 240
+    },
+    "booking_link": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT_CREATED", "NEEDS_REVIEW", "NO_ACTION", "FAILED"]
+    },
+    "error_code": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "INVALID_INPUT",
+        "MISSING_CONTACT_METHOD",
+        "MISSING_MESSAGE_CONTENT",
+        "UNSUPPORTED_SOURCE",
+        "AI_GATEWAY_FAILED",
+        "AI_PROVIDER_FAILED",
+        "AI_PARSE_FAILED",
+        "AI_SCHEMA_VALIDATION_FAILED",
+        "CRM_WRITE_FAILED",
+        "SLACK_NOTIFY_FAILED",
+        "GMAIL_DRAFT_FAILED",
+        "UNKNOWN_ERROR"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "FAILED"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "INVALID_INPUT",
+              "MISSING_CONTACT_METHOD",
+              "MISSING_MESSAGE_CONTENT",
+              "UNSUPPORTED_SOURCE",
+              "AI_GATEWAY_FAILED",
+              "AI_PROVIDER_FAILED",
+              "AI_PARSE_FAILED",
+              "AI_SCHEMA_VALIDATION_FAILED",
+              "CRM_WRITE_FAILED",
+              "SLACK_NOTIFY_FAILED",
+              "GMAIL_DRAFT_FAILED",
+              "UNKNOWN_ERROR"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["DRAFT_CREATED", "NEEDS_REVIEW", "NO_ACTION"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "error_code": {
+            "const": null
+          }
+        }
+      }
+    }
+  ]
+}

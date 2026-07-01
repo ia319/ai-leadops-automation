@@ -8,10 +8,11 @@
     "build": "pnpm --filter ai-gateway build",
     "test": "pnpm --filter ai-gateway test",
     "lint": "pnpm --filter ai-gateway lint",
+    "check:precommit": "node scripts/precommit-check.mjs && pnpm --filter ai-gateway lint && pnpm --filter ai-gateway test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "^3.3.3"
+    "prettier": "3.3.3"
   }
 }

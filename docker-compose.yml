@@ -1,0 +1,9 @@
+services:
+  ai-gateway:
+    build:
+      context: .
+      dockerfile: apps/ai-gateway/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8787:8787"

@@ -1,0 +1,635 @@
+{
+  "name": "AI LeadOps Main",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadops-main",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "leadops-main-webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body ?? $input.first().json;\nfunction createLeadId() {\n  if (globalThis.crypto?.randomUUID) {\n    return `lead_${globalThis.crypto.randomUUID()}`;\n  }\n  return `lead_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;\n}\nconst lead = {\n  lead_id: input.lead_id ?? createLeadId(),\n  source: input.source,\n  received_at: input.received_at ?? new Date().toISOString(),\n  contact: {\n    name: input.name ?? null,\n    email: input.email ?? null,\n    phone: input.phone ?? null,\n    company: input.company ?? null\n  },\n  content: {\n    message: input.message ?? null,\n    transcript: input.transcript ?? null\n  },\n  metadata: {\n    campaign: input.campaign ?? null,\n    language: input.language ?? 'en',\n    external_id: input.external_id ?? null\n  },\n  raw_input: input\n};\nreturn [{ json: { lead, raw_input: input } }];"
+      },
+      "id": "normalize-lead",
+      "name": "Normalize Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst lead = data.lead;\nconst errors = [];\nif (!['website_form', 'facebook_ad', 'missed_call_transcript'].includes(lead.source)) errors.push('UNSUPPORTED_SOURCE');\nif (!lead.contact.email && !lead.contact.phone) errors.push('MISSING_CONTACT_METHOD');\nif (!lead.content.message && !lead.content.transcript) errors.push('MISSING_MESSAGE_CONTENT');\nfunction redactLeadInput(value) {\n  const contact = value.contact ?? {};\n  const content = value.content ?? {};\n  const metadata = value.metadata ?? {};\n  return {\n    lead_id: value.lead_id ?? null,\n    source: value.source ?? null,\n    received_at: value.received_at ?? null,\n    contact: {\n      has_name: Boolean(contact.name),\n      has_email: Boolean(contact.email),\n      has_phone: Boolean(contact.phone),\n      has_company: Boolean(contact.company)\n    },\n    content: {\n      has_message: Boolean(content.message),\n      has_transcript: Boolean(content.transcript)\n    },\n    metadata: {\n      campaign: metadata.campaign ?? null,\n      language: metadata.language ?? null,\n      has_external_id: Boolean(metadata.external_id)\n    }\n  };\n}\nif (errors.length > 0) {\n  const code = errors[0];\n  const error = {\n    code,\n    message: 'Lead input failed validation.',\n    details: { errors }\n  };\n  const error_log = {\n    error_id: `err_${Date.now()}`,\n    lead_id: lead.lead_id ?? null,\n    timestamp: new Date().toISOString(),\n    workflow_name: 'AI LeadOps Main',\n    node_name: 'Validate Lead',\n    error_code: code,\n    error_message: error.message,\n    status: 'FAILED',\n    raw_input: redactLeadInput(lead),\n    raw_ai_output: null\n  };\n  return [{ json: { ...data, status: 'error', error, error_log, response: { status: 'error', error } } }];\n}\nreturn [{ json: { ...data, status: 'success' } }];"
+      },
+      "id": "validate-lead",
+      "name": "Validate Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "valid-lead-condition",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-valid-lead",
+      "name": "Route Valid Lead",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, -180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.AI_GATEWAY_URL || 'http://host.docker.internal:8787') + '/v1/qualify-lead' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead: $json.lead }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-request-ai-gateway",
+      "name": "HTTP Request: AI Gateway /v1/qualify-lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const leadData = $('Validate Lead').all()[0].json;\nconst response = $input.first().json;\nfunction redactLeadInput(value) {\n  const contact = value.contact ?? {};\n  const content = value.content ?? {};\n  const metadata = value.metadata ?? {};\n  return {\n    lead_id: value.lead_id ?? null,\n    source: value.source ?? null,\n    received_at: value.received_at ?? null,\n    contact: {\n      has_name: Boolean(contact.name),\n      has_email: Boolean(contact.email),\n      has_phone: Boolean(contact.phone),\n      has_company: Boolean(contact.company)\n    },\n    content: {\n      has_message: Boolean(content.message),\n      has_transcript: Boolean(content.transcript)\n    },\n    metadata: {\n      campaign: metadata.campaign ?? null,\n      language: metadata.language ?? null,\n      has_external_id: Boolean(metadata.external_id)\n    }\n  };\n}\nfunction redactAIOutput(value) {\n  if (!value || typeof value !== 'object') return null;\n  return {\n    lead_type: value.lead_type ?? null,\n    intent: value.intent ?? null,\n    priority: value.priority ?? null,\n    lead_score: value.lead_score ?? null,\n    has_service_requested: Boolean(value.service_requested),\n    has_pain_point: Boolean(value.pain_point),\n    crm_fields: value.crm_fields ?? null,\n    has_suggested_email_reply: typeof value.suggested_email_reply === 'string',\n    has_suggested_sms_reply: typeof value.suggested_sms_reply === 'string'\n  };\n}\nfunction buildError(code, message, details, rawAiOutput) {\n  const lead = leadData.lead;\n  const error = { code, message, details };\n  const error_log = {\n    error_id: `err_${Date.now()}`,\n    lead_id: lead.lead_id ?? null,\n    timestamp: new Date().toISOString(),\n    workflow_name: 'AI LeadOps Main',\n    node_name: 'Validate AI Output',\n    error_code: code,\n    error_message: message,\n    status: 'FAILED',\n    raw_input: redactLeadInput(lead),\n    raw_ai_output: redactAIOutput(rawAiOutput)\n  };\n  return [{ json: { ...leadData, status: 'error', error, error_log, response: { status: 'error', error } } }];\n}\nif (response.error || response.statusCode >= 400) {\n  return buildError('AI_GATEWAY_FAILED', 'AI Gateway request failed.', { gateway_response: response }, response);\n}\nconst output = response.output;\nconst required = ['lead_summary', 'lead_type', 'intent', 'priority', 'lead_score', 'recommended_next_step', 'suggested_email_reply', 'suggested_sms_reply', 'crm_fields'];\nif (!output || typeof output !== 'object') {\n  return buildError('AI_SCHEMA_VALIDATION_FAILED', 'AI Gateway returned invalid output.', { missing: ['output'] }, response);\n}\nconst missing = required.filter((field) => output[field] === undefined || output[field] === null);\nif (missing.length > 0 || !Number.isInteger(output.lead_score) || output.lead_score < 0 || output.lead_score > 100) {\n  return buildError('AI_SCHEMA_VALIDATION_FAILED', 'AI output failed schema validation.', { missing }, output);\n}\nreturn [{ json: { ...leadData, status: 'success', ai_gateway_response: response } }];"
+      },
+      "id": "validate-ai-output",
+      "name": "Validate AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ai-success-condition",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-ai-success",
+      "name": "Route AI Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, -180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst lead = data.lead;\nconst response = data.ai_gateway_response;\nconst output = response.output;\nconst statusByFollowUp = {\n  'Draft Created': 'DRAFT_CREATED',\n  'Needs Review': 'NEEDS_REVIEW',\n  'No Action': 'NO_ACTION'\n};\nconst shouldAttachBookingLink = output.intent === 'Book Consultation';\nconst booking_link = shouldAttachBookingLink && $env.BOOKING_LINK ? $env.BOOKING_LINK : null;\nconst email_draft = booking_link ? `${output.suggested_email_reply}\\n\\nBooking link: ${booking_link}` : output.suggested_email_reply;\nconst crm = {\n  lead_id: lead.lead_id,\n  received_at: lead.received_at,\n  source: lead.source,\n  name: lead.contact.name,\n  email: lead.contact.email,\n  phone: lead.contact.phone,\n  company: lead.contact.company,\n  lead_type: output.lead_type,\n  intent: output.intent,\n  priority: output.priority,\n  lead_score: output.lead_score,\n  service_requested: output.service_requested,\n  pain_point: output.pain_point,\n  lead_summary: output.lead_summary,\n  recommended_next_step: output.recommended_next_step,\n  pipeline_stage: output.crm_fields.pipeline_stage,\n  follow_up_status: output.crm_fields.follow_up_status,\n  email_draft,\n  sms_draft: output.suggested_sms_reply,\n  booking_link,\n  status: statusByFollowUp[output.crm_fields.follow_up_status] ?? 'NEEDS_REVIEW',\n  error_code: null\n};\nconst slack_alert = crm.lead_score >= 75 ? {\n  channel: $env.SLACK_CHANNEL_ID || '#sales',\n  text: `High-priority lead: ${crm.name ?? crm.phone ?? crm.email}`,\n  fields: {\n    lead_id: crm.lead_id,\n    company: crm.company,\n    source: crm.source,\n    priority: crm.priority,\n    lead_score: crm.lead_score,\n    intent: crm.intent,\n    recommended_next_step: crm.recommended_next_step\n  }\n} : null;\nconst gmail_draft = crm.email ? {\n  to: crm.email,\n  subject: `Re: ${crm.service_requested ?? 'Your inquiry'}`,\n  body: crm.email_draft\n} : null;\nreturn [{ json: { ...data, crm_record: crm, slack_alert, gmail_draft, booking_link } }];"
+      },
+      "id": "build-crm-record",
+      "name": "Build CRM Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.crm_record.lead_id }}",
+            "received_at": "={{ $json.crm_record.received_at }}",
+            "source": "={{ $json.crm_record.source }}",
+            "name": "={{ $json.crm_record.name }}",
+            "email": "={{ $json.crm_record.email }}",
+            "phone": "={{ $json.crm_record.phone }}",
+            "company": "={{ $json.crm_record.company }}",
+            "lead_type": "={{ $json.crm_record.lead_type }}",
+            "intent": "={{ $json.crm_record.intent }}",
+            "priority": "={{ $json.crm_record.priority }}",
+            "lead_score": "={{ $json.crm_record.lead_score }}",
+            "service_requested": "={{ $json.crm_record.service_requested }}",
+            "pain_point": "={{ $json.crm_record.pain_point }}",
+            "lead_summary": "={{ $json.crm_record.lead_summary }}",
+            "recommended_next_step": "={{ $json.crm_record.recommended_next_step }}",
+            "pipeline_stage": "={{ $json.crm_record.pipeline_stage }}",
+            "follow_up_status": "={{ $json.crm_record.follow_up_status }}",
+            "email_draft": "={{ $json.crm_record.email_draft }}",
+            "sms_draft": "={{ $json.crm_record.sms_draft }}",
+            "booking_link": "={{ $json.crm_record.booking_link }}",
+            "status": "={{ $json.crm_record.status }}",
+            "error_code": "={{ $json.crm_record.error_code }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "append-google-sheets-row",
+      "name": "Append Google Sheets Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-score-condition",
+              "leftValue": "={{ $node[\"Build CRM Record\"].json.crm_record.lead_score }}",
+              "rightValue": 75,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-by-lead-score",
+      "name": "Route by Lead Score",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": "={{ $node[\"Build CRM Record\"].json.slack_alert.channel }}",
+        "text": "={{ $node[\"Build CRM Record\"].json.slack_alert.text + '\\nScore: ' + $node[\"Build CRM Record\"].json.crm_record.lead_score + '\\nNext step: ' + $node[\"Build CRM Record\"].json.crm_record.recommended_next_step }}",
+        "otherOptions": {}
+      },
+      "id": "send-slack-alert",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1760, -120],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-email-condition",
+              "leftValue": "={{ Boolean($node[\"Build CRM Record\"].json.gmail_draft) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-by-email",
+      "name": "Route by Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "sendTo": "={{ $node[\"Build CRM Record\"].json.gmail_draft.to }}",
+        "subject": "={{ $node[\"Build CRM Record\"].json.gmail_draft.subject }}",
+        "message": "={{ $node[\"Build CRM Record\"].json.gmail_draft.body }}",
+        "options": {}
+      },
+      "id": "create-gmail-draft",
+      "name": "Create Gmail Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2200, -120],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Build CRM Record').all()[0].json;\nconst crm = data.crm_record;\nfunction readNodeOutput(name) {\n  try {\n    return $(name).all()[0]?.json ?? null;\n  } catch {\n    return null;\n  }\n}\nconst sink_warnings = [];\nconst slack_output = readNodeOutput('Send Slack Alert');\nif (data.slack_alert && slack_output?.error) {\n  sink_warnings.push({\n    code: 'SLACK_NOTIFY_FAILED',\n    message: 'Slack notification failed.',\n    details: slack_output.error\n  });\n}\nconst gmail_output = readNodeOutput('Create Gmail Draft');\nif (data.gmail_draft && gmail_output?.error) {\n  sink_warnings.push({\n    code: 'GMAIL_DRAFT_FAILED',\n    message: 'Gmail draft creation failed.',\n    details: gmail_output.error\n  });\n}\nconst sms_draft = crm.phone ? {\n  phone: crm.phone,\n  body: crm.sms_draft,\n  status: 'draft_created'\n} : null;\nreturn [{ json: { ...data, sms_draft, sink_warnings } }];"
+      },
+      "id": "generate-sms-draft",
+      "name": "Generate SMS Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst crm = data.crm_record;\nconst warnings = data.sink_warnings ?? [];\nconst warningCodes = new Set(warnings.map((warning) => warning.code));\nconst slack_alert_sent = Boolean(data.slack_alert) && !warningCodes.has('SLACK_NOTIFY_FAILED');\nconst gmail_draft_created = Boolean(data.gmail_draft) && !warningCodes.has('GMAIL_DRAFT_FAILED');\nconst sms_draft_created = Boolean(data.sms_draft);\nconst booking_link = crm.booking_link ?? null;\nconst success_log = {\n  timestamp: new Date().toISOString(),\n  lead_id: crm.lead_id,\n  workflow_name: 'AI LeadOps Main',\n  status: warnings.length > 0 ? 'SUCCESS_WITH_WARNINGS' : 'SUCCESS',\n  provider: data.ai_gateway_response.provider,\n  model: data.ai_gateway_response.model,\n  priority: crm.priority,\n  lead_score: crm.lead_score,\n  crm_record_created: true,\n  slack_alert_sent,\n  gmail_draft_created,\n  sms_draft_created,\n  booking_link_attached: Boolean(booking_link),\n  warning_count: warnings.length,\n  warnings\n};\nreturn [{\n  json: {\n    ...data,\n    crm_record: crm,\n    gmail_draft: data.gmail_draft,\n    booking_link,\n    success_log,\n    response: {\n      status: warnings.length > 0 ? 'success_with_warnings' : 'success',\n      lead_id: crm.lead_id,\n      priority: crm.priority,\n      lead_score: crm.lead_score,\n      crm_record_created: true,\n      slack_alert_sent,\n      gmail_draft_created,\n      sms_draft_created,\n      booking_link_attached: Boolean(booking_link),\n      warnings,\n      next_step: 'Review the generated drafts and contact the lead.'\n    }\n  }\n}];"
+      },
+      "id": "attach-booking-link",
+      "name": "Attach Booking Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ExecutionLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.success_log.timestamp }}",
+            "lead_id": "={{ $json.success_log.lead_id }}",
+            "workflow_name": "={{ $json.success_log.workflow_name }}",
+            "status": "={{ $json.success_log.status }}",
+            "provider": "={{ $json.success_log.provider }}",
+            "model": "={{ $json.success_log.model }}",
+            "priority": "={{ $json.success_log.priority }}",
+            "lead_score": "={{ $json.success_log.lead_score }}",
+            "crm_record_created": "={{ $json.success_log.crm_record_created }}",
+            "slack_alert_sent": "={{ $json.success_log.slack_alert_sent }}",
+            "gmail_draft_created": "={{ $json.success_log.gmail_draft_created }}",
+            "sms_draft_created": "={{ $json.success_log.sms_draft_created }}",
+            "booking_link_attached": "={{ $json.success_log.booking_link_attached }}",
+            "warning_count": "={{ $json.success_log.warning_count }}",
+            "warnings": "={{ JSON.stringify($json.success_log.warnings) }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "append-success-log",
+      "name": "Append Success Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2860, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $node[\"Attach Booking Link\"].json.response }}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3080, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_DOCUMENT_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ErrorLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ $json.error_log.error_id }}",
+            "lead_id": "={{ $json.error_log.lead_id }}",
+            "timestamp": "={{ $json.error_log.timestamp }}",
+            "workflow_name": "={{ $json.error_log.workflow_name }}",
+            "node_name": "={{ $json.error_log.node_name }}",
+            "error_code": "={{ $json.error_log.error_code }}",
+            "error_message": "={{ $json.error_log.error_message }}",
+            "status": "={{ $json.error_log.status }}",
+            "raw_input": "={{ JSON.stringify($json.error_log.raw_input) }}",
+            "raw_ai_output": "={{ JSON.stringify($json.error_log.raw_ai_output) }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "append-error-log-row",
+      "name": "Append Error Log Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1320, 260]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.response }}",
+        "options": {}
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 260]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead": {
+      "main": [
+        [
+          {
+            "node": "Route Valid Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Valid Lead": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: AI Gateway /v1/qualify-lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Error Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: AI Gateway /v1/qualify-lead": {
+      "main": [
+        [
+          {
+            "node": "Validate AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate AI Output": {
+      "main": [
+        [
+          {
+            "node": "Route AI Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route AI Success": {
+      "main": [
+        [
+          {
+            "node": "Build CRM Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Error Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CRM Record": {
+      "main": [
+        [
+          {
+            "node": "Append Google Sheets Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Google Sheets Row": {
+      "main": [
+        [
+          {
+            "node": "Route by Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Alert": {
+      "main": [
+        [
+          {
+            "node": "Route by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Email": {
+      "main": [
+        [
+          {
+            "node": "Create Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate SMS Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Generate SMS Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate SMS Draft": {
+      "main": [
+        [
+          {
+            "node": "Attach Booking Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Booking Link": {
+      "main": [
+        [
+          {
+            "node": "Append Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Success Log": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Error Log Row": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-30T00:00:00.000Z",
+  "versionId": "leadops-main-v1"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "ai-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/src/server.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm run typecheck"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.106.0",
+    "ajv": "8.16.0",
+    "ajv-formats": "3.0.1",
+    "dotenv": "16.4.5",
+    "fastify": "4.28.1",
+    "openai": "6.45.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "tsx": "4.16.2",
+    "typescript": "5.5.3"
+  }
+}

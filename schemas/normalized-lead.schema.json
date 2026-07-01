@@ -4,7 +4,15 @@
   "title": "NormalizedLead",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lead_id", "source", "received_at", "contact", "content", "metadata", "raw_input"],
+  "required": [
+    "lead_id",
+    "source",
+    "received_at",
+    "contact",
+    "content",
+    "metadata",
+    "raw_input"
+  ],
   "properties": {
     "lead_id": {
       "type": "string",
