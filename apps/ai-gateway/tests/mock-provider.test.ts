@@ -71,5 +71,8 @@ describe("MockProvider", () => {
 
     assert.deepEqual(validateAIQualificationOutput(output), output);
     assert.equal(output.priority, "Low");
+    assert.equal(output.lead_type, "Spam");
+    assert.equal(output.crm_fields.pipeline_stage, "Spam");
+    assert.equal(output.crm_fields.follow_up_status, "No Action");
   });
 });

@@ -158,6 +158,26 @@ describe("schema validation", () => {
       validate({ ...validRecord, extra_field: "unexpected" }),
       false,
     );
+    assert.equal(
+      validate({ ...validRecord, status: "FAILED", error_code: null }),
+      false,
+    );
+    assert.equal(
+      validate({
+        ...validRecord,
+        status: "DRAFT_CREATED",
+        error_code: "CRM_WRITE_FAILED",
+      }),
+      false,
+    );
+    assert.equal(
+      validate({
+        ...validRecord,
+        status: "FAILED",
+        error_code: "CRM_WRITE_FAILED",
+      }),
+      true,
+    );
   });
 
   it("validates error response examples", async () => {

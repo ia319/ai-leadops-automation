@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { buildApp } from "../src/app.js";
 import type { AppConfig } from "../src/config.js";
 import { loadConfig } from "../src/config.js";
+import { AppError, buildErrorResponse } from "../src/errors.js";
 import type { QualificationResponse } from "../src/types.js";
 import { createNormalizedLead } from "./fixtures.js";
 
@@ -78,6 +79,46 @@ describe("AI Gateway routes", () => {
         }),
       /Unsupported AI provider: unsupported/,
     );
+  });
+
+  it("defaults blank optional config values", () => {
+    const loadedConfig = loadConfig({
+      AI_PROVIDER: "",
+      PORT: "",
+    });
+
+    assert.equal(loadedConfig.aiProvider, "mock");
+    assert.equal(loadedConfig.port, 8787);
+  });
+
+  it("rejects partially numeric config values", () => {
+    assert.throws(() => loadConfig({ PORT: "3000abc" }), /PORT must/);
+    assert.throws(
+      () => loadConfig({ AI_MAX_TOKENS: "1200foo" }),
+      /AI_MAX_TOKENS must/,
+    );
+    assert.throws(
+      () => loadConfig({ AI_TEMPERATURE: "0.2oops" }),
+      /AI_TEMPERATURE must/,
+    );
+  });
+
+  it("redacts internal details from server errors", () => {
+    const serverError = buildErrorResponse(
+      new AppError("AI_GATEWAY_FAILED", "Provider failed", 500, {
+        secret: "do-not-expose",
+      }),
+    );
+    const validationError = buildErrorResponse(
+      new AppError("INVALID_INPUT", "Invalid input", 400, {
+        errors: ["MISSING_CONTACT_METHOD"],
+      }),
+    );
+
+    assert.equal("details" in serverError.error, false);
+    assert.deepEqual(validationError.error.details, {
+      errors: ["MISSING_CONTACT_METHOD"],
+    });
   });
 
   it("loads OpenAI provider config", () => {

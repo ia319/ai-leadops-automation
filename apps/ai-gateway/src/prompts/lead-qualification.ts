@@ -5,11 +5,8 @@ import { fileURLToPath } from "node:url";
 import { AppError } from "../errors.js";
 import type { NormalizedLead } from "../types.js";
 
-const promptDir = findPromptDir(dirname(fileURLToPath(import.meta.url)));
-const leadQualificationSystemPrompt = readFileSync(
-  resolve(promptDir, "lead-qualification.prompt.md"),
-  "utf8",
-);
+const promptPath = findPromptFile(dirname(fileURLToPath(import.meta.url)));
+const leadQualificationSystemPrompt = readFileSync(promptPath, "utf8");
 
 /**
  * Build the system prompt shared by all provider adapters.
@@ -29,16 +26,18 @@ export function getLeadQualificationSystemPrompt(): string {
 export function buildLeadQualificationUserPayload(
   lead: NormalizedLead,
 ): string {
+  const { raw_input: _rawInput, ...leadForModel } = lead;
+
   return JSON.stringify(
     {
-      lead,
+      lead: leadForModel,
     },
     null,
     2,
   );
 }
 
-function findPromptDir(startDir: string): string {
+function findPromptFile(startDir: string): string {
   const candidates = [
     resolve(startDir, "../../../..", "prompts"),
     resolve(startDir, "../../../../..", "prompts"),
@@ -47,14 +46,16 @@ function findPromptDir(startDir: string): string {
   ];
 
   for (const candidate of candidates) {
-    if (existsSync(candidate)) {
-      return candidate;
+    const promptFile = resolve(candidate, "lead-qualification.prompt.md");
+
+    if (existsSync(promptFile)) {
+      return promptFile;
     }
   }
 
   throw new AppError(
     "AI_GATEWAY_FAILED",
-    "Runtime prompt directory was not found",
+    "Runtime prompt file was not found",
     500,
   );
 }

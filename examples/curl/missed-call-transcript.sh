@@ -5,6 +5,6 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-curl -sS -X POST "$WEBHOOK_URL" \
+curl --fail-with-body -sS -X POST "$WEBHOOK_URL" \
   -H "Content-Type: application/json" \
   --data-binary "@$SCRIPT_DIR/../inputs/missed-call-transcript.json"

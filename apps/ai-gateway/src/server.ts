@@ -1,10 +1,12 @@
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
-const config = loadConfig();
-const app = await buildApp(config);
+let app: Awaited<ReturnType<typeof buildApp>> | undefined;
 
 try {
+  const config = loadConfig();
+  app = await buildApp(config);
+
   await app.listen({
     port: config.port,
     host: "0.0.0.0",
@@ -18,6 +20,10 @@ try {
     "AI Gateway started",
   );
 } catch (error) {
-  app.log.error(error, "AI Gateway failed to start");
+  if (app) {
+    app.log.error(error, "AI Gateway failed to start");
+  } else {
+    console.error("AI Gateway failed to start", error);
+  }
   process.exitCode = 1;
 }

@@ -17,7 +17,7 @@ export class MockProvider implements AIProvider {
       `${input.content.message ?? ""} ${input.content.transcript ?? ""}`.toLowerCase();
 
     if (containsAny(text, ["spam", "unsubscribe", "crypto giveaway"])) {
-      return buildProviderResult(this.buildLowPriorityOutput(input));
+      return buildProviderResult(this.buildSpamOutput(input));
     }
 
     if (
@@ -97,11 +97,11 @@ export class MockProvider implements AIProvider {
     };
   }
 
-  private buildLowPriorityOutput(input: NormalizedLead): AIQualificationOutput {
+  private buildSpamOutput(input: NormalizedLead): AIQualificationOutput {
     return {
       lead_summary:
-        "The message does not show a clear service request or buying intent.",
-      lead_type: "Other",
+        "The message appears to be spam or not a legitimate service inquiry.",
+      lead_type: "Spam",
       intent: "Other",
       priority: "Low",
       lead_score: 22,
@@ -111,11 +111,11 @@ export class MockProvider implements AIProvider {
         "Review manually only if additional context appears.",
       needs_human_followup: false,
       suggested_email_reply:
-        "Hi, thanks for reaching out. Please send more detail about the service you need so we can route your request correctly.",
+        "No follow-up needed because the message appears to be spam or unrelated.",
       suggested_sms_reply:
-        "Thanks for reaching out. Please send more detail about the service you need.",
+        "No follow-up needed because this appears unrelated.",
       crm_fields: {
-        pipeline_stage: "Low Priority",
+        pipeline_stage: "Spam",
         lead_source: input.source,
         interest_area: null,
         follow_up_status: "No Action",

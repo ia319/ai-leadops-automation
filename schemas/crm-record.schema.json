@@ -144,5 +144,55 @@
         "UNKNOWN_ERROR"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "FAILED"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "INVALID_INPUT",
+              "MISSING_CONTACT_METHOD",
+              "MISSING_MESSAGE_CONTENT",
+              "UNSUPPORTED_SOURCE",
+              "AI_GATEWAY_FAILED",
+              "AI_PROVIDER_FAILED",
+              "AI_PARSE_FAILED",
+              "AI_SCHEMA_VALIDATION_FAILED",
+              "CRM_WRITE_FAILED",
+              "SLACK_NOTIFY_FAILED",
+              "GMAIL_DRAFT_FAILED",
+              "UNKNOWN_ERROR"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["DRAFT_CREATED", "NEEDS_REVIEW", "NO_ACTION"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "error_code": {
+            "const": null
+          }
+        }
+      }
+    }
+  ]
 }

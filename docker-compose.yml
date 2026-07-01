@@ -1,7 +1,8 @@
 services:
   ai-gateway:
     build:
-      context: ./apps/ai-gateway
+      context: .
+      dockerfile: apps/ai-gateway/Dockerfile
     env_file:
       - .env
     ports:

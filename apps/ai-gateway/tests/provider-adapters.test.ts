@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { buildLeadQualificationUserPayload } from "../src/prompts/lead-qualification.js";
 import { AnthropicProvider } from "../src/providers/anthropic.js";
 import { OpenAIProvider } from "../src/providers/openai.js";
 import { OpenAICompatibleProvider } from "../src/providers/openai-compatible.js";
@@ -30,6 +31,20 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 describe("provider adapters", () => {
+  it("omits raw input from model payloads", () => {
+    const payload = buildLeadQualificationUserPayload(
+      createNormalizedLead({
+        raw_input: {
+          secret: "do-not-send",
+        },
+      }),
+    );
+
+    assert.match(payload, /lead_test_001/);
+    assert.doesNotMatch(payload, /raw_input/);
+    assert.doesNotMatch(payload, /do-not-send/);
+  });
+
   it("calls OpenAI Responses API with JSON Schema structured output", async () => {
     const expectedOutput = await readJson<AIQualificationOutput>(
       "examples/outputs/qualified-high-priority.json",

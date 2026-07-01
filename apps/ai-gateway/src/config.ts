@@ -36,29 +36,29 @@ const supportedProviders = new Set<string>([
  * @throws AppError when a required configuration value is invalid.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const port = Number.parseInt(env.PORT ?? "8787", 10);
-  const provider = env.AI_PROVIDER ?? "mock";
-  const aiTemperature = parseNumber(env.AI_TEMPERATURE ?? "0.2", {
+  const rawPort = optionalEnv(env.PORT) ?? "8787";
+  const provider = optionalEnv(env.AI_PROVIDER) ?? "mock";
+  const aiTemperature = parseNumber(optionalEnv(env.AI_TEMPERATURE) ?? "0.2", {
     name: "AI_TEMPERATURE",
     min: 0,
     max: 2,
   });
-  const aiMaxTokens = parseInteger(env.AI_MAX_TOKENS ?? "1200", {
+  const aiMaxTokens = parseInteger(optionalEnv(env.AI_MAX_TOKENS) ?? "1200", {
     name: "AI_MAX_TOKENS",
     min: 1,
   });
-  const aiTimeoutMs = parseInteger(env.AI_TIMEOUT_MS ?? "30000", {
+  const aiTimeoutMs = parseInteger(optionalEnv(env.AI_TIMEOUT_MS) ?? "30000", {
     name: "AI_TIMEOUT_MS",
     min: 1000,
   });
-  const aiRetryCount = parseInteger(env.AI_RETRY_COUNT ?? "2", {
+  const aiRetryCount = parseInteger(optionalEnv(env.AI_RETRY_COUNT) ?? "2", {
     name: "AI_RETRY_COUNT",
     min: 1,
   });
-
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new AppError("INVALID_INPUT", "PORT must be a positive integer", 500);
-  }
+  const port = parseInteger(rawPort, {
+    name: "PORT",
+    min: 1,
+  });
 
   if (!isAIProviderName(provider)) {
     throw new AppError(
@@ -98,7 +98,7 @@ function loadProviderSettings(
 } {
   if (provider === "mock") {
     return {
-      model: env.AI_MODEL ?? "demo-leadops-model",
+      model: optionalEnv(env.AI_MODEL) ?? "demo-leadops-model",
     };
   }
 
@@ -139,7 +139,17 @@ function parseInteger(
     readonly min: number;
   },
 ): number {
-  const parsed = Number.parseInt(value, 10);
+  const trimmed = value.trim();
+
+  if (!/^(0|[1-9]\d*)$/.test(trimmed)) {
+    throw new AppError(
+      "INVALID_INPUT",
+      `${options.name} must be an integer greater than or equal to ${options.min}`,
+      500,
+    );
+  }
+
+  const parsed = Number(trimmed);
 
   if (!Number.isInteger(parsed) || parsed < options.min) {
     throw new AppError(
@@ -160,7 +170,17 @@ function parseNumber(
     readonly max: number;
   },
 ): number {
-  const parsed = Number.parseFloat(value);
+  const trimmed = value.trim();
+
+  if (!/^(?:\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+    throw new AppError(
+      "INVALID_INPUT",
+      `${options.name} must be between ${options.min} and ${options.max}`,
+      500,
+    );
+  }
+
+  const parsed = Number(trimmed);
 
   if (
     !Number.isFinite(parsed) ||
@@ -178,7 +198,9 @@ function parseNumber(
 }
 
 function requireSetting(value: string | undefined, name: string): string {
-  if (value === undefined || value.trim() === "") {
+  const trimmed = optionalEnv(value);
+
+  if (trimmed === undefined) {
     throw new AppError(
       "AI_PROVIDER_FAILED",
       `${name} is required for the selected AI provider`,
@@ -186,12 +208,22 @@ function requireSetting(value: string | undefined, name: string): string {
     );
   }
 
-  return value;
+  return trimmed;
 }
 
 function optionalString<Key extends string>(
   key: Key,
   value: string | undefined,
 ): Partial<Record<Key, string>> {
-  return value === undefined ? {} : ({ [key]: value } as Record<Key, string>);
+  const trimmed = optionalEnv(value);
+
+  return trimmed === undefined
+    ? {}
+    : ({ [key]: trimmed } as Record<Key, string>);
+}
+
+function optionalEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+
+  return trimmed === "" ? undefined : trimmed;
 }
