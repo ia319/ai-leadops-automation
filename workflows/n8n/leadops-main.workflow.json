@@ -264,10 +264,11 @@
       "parameters": {
         "resource": "draft",
         "operation": "create",
-        "sendTo": "={{ $node[\"Build CRM Record\"].json.gmail_draft.to }}",
         "subject": "={{ $node[\"Build CRM Record\"].json.gmail_draft.subject }}",
         "message": "={{ $node[\"Build CRM Record\"].json.gmail_draft.body }}",
-        "options": {}
+        "options": {
+          "sendTo": "={{ $node[\"Build CRM Record\"].json.gmail_draft.to }}"
+        }
       },
       "id": "create-gmail-draft",
       "name": "Create Gmail Draft",
