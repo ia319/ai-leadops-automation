@@ -1,13 +1,14 @@
 <div align="center">
   <h1>AI LeadOps Automation</h1>
-
+  
+  <p>
+    <img src="assets/leadops-demo.gif" alt="AI LeadOps Automation demo" width="900">
+  </p>
+  
   <p>AI LeadOps Automation: local n8n delivery package for inbound lead intake, AI qualification, CRM-style rows, follow-up drafts, high-priority Slack alerts, booking links, execution logs, error logs, and daily summaries.</p>
 
   <p>Main workflow dependencies: Google Sheets, Slack, and Gmail credentials in n8n. Demo workflow purpose: credential-free data shape review before external service setup.</p>
 
-  <p>
-    <img src="assets/leadops-demo.gif" alt="AI LeadOps Automation demo" width="900">
-  </p>
 </div>
 
 ## Contents
