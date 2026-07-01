@@ -190,4 +190,35 @@ describe("schema validation", () => {
       true,
     );
   });
+
+  it("validates serialized error log rows", async () => {
+    const ajv = addFormats(new Ajv2020({ allErrors: true }));
+    const schema = await readJson<object>("schemas/error-log.schema.json");
+    const validate = ajv.compile(schema);
+    const validRow = {
+      error_id: "err_test_001",
+      lead_id: "lead_test_001",
+      timestamp: "2026-06-29T19:20:00Z",
+      workflow_name: "AI LeadOps Main",
+      node_name: "Validate Lead",
+      error_code: "INVALID_INPUT",
+      error_message: "Lead input failed validation.",
+      status: "FAILED",
+      raw_input: JSON.stringify({
+        lead_id: "lead_test_001",
+        source: "website_form",
+        contact: {
+          has_email: true,
+          has_phone: false,
+        },
+      }),
+      raw_ai_output: null,
+    };
+
+    assert.equal(validate(validRow), true);
+    assert.equal(
+      validate({ ...validRow, raw_input: { email: "hidden" } }),
+      false,
+    );
+  });
 });

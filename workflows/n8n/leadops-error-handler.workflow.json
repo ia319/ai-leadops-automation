@@ -11,7 +11,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst workflow = input.workflow ?? {};\nconst execution = input.execution ?? {};\nconst node = input.node ?? {};\nconst error = input.error ?? {};\nconst message = error.message ?? input.message ?? 'Workflow execution failed.';\nconst knownCodes = [\n  'INVALID_INPUT',\n  'MISSING_CONTACT_METHOD',\n  'MISSING_MESSAGE_CONTENT',\n  'UNSUPPORTED_SOURCE',\n  'AI_GATEWAY_FAILED',\n  'AI_PROVIDER_FAILED',\n  'AI_PARSE_FAILED',\n  'AI_SCHEMA_VALIDATION_FAILED',\n  'CRM_WRITE_FAILED',\n  'SLACK_NOTIFY_FAILED',\n  'GMAIL_DRAFT_FAILED'\n];\nconst errorText = `${error.name ?? ''} ${message}`;\nconst error_code = knownCodes.find((code) => errorText.includes(code)) ?? 'UNKNOWN_ERROR';\nconst workflow_name = workflow.name ?? execution.workflowName ?? 'Unknown Workflow';\nconst node_name = node.name ?? execution.lastNodeExecuted ?? 'Unknown Node';\nconst error_log = {\n  error_id: `err_${Date.now()}`,\n  lead_id: input.lead_id ?? input.lead?.lead_id ?? null,\n  timestamp: new Date().toISOString(),\n  workflow_name,\n  node_name,\n  error_code,\n  error_message: message,\n  status: 'FAILED',\n  raw_input: input,\n  raw_ai_output: input.raw_ai_output ?? null\n};\nconst slack_alert = {\n  channel: $env.SLACK_CHANNEL_ID || '#sales',\n  text: `LeadOps workflow failed: ${workflow_name}`,\n  fields: {\n    workflow_name,\n    node_name,\n    error_code,\n    error_message: message,\n    execution_id: execution.id ?? null\n  }\n};\nreturn [{ json: { error_log, slack_alert } }];"
+        "jsCode": "const input = $input.first().json;\nconst workflow = input.workflow ?? {};\nconst execution = input.execution ?? {};\nconst node = input.node ?? {};\nconst error = input.error ?? {};\nconst message = error.message ?? input.message ?? 'Workflow execution failed.';\nconst knownCodes = [\n  'INVALID_INPUT',\n  'MISSING_CONTACT_METHOD',\n  'MISSING_MESSAGE_CONTENT',\n  'UNSUPPORTED_SOURCE',\n  'AI_GATEWAY_FAILED',\n  'AI_PROVIDER_FAILED',\n  'AI_PARSE_FAILED',\n  'AI_SCHEMA_VALIDATION_FAILED',\n  'CRM_WRITE_FAILED',\n  'SLACK_NOTIFY_FAILED',\n  'GMAIL_DRAFT_FAILED'\n];\nconst errorText = (error.name ?? '') + ' ' + message;\nconst error_code = knownCodes.find((code) => errorText.includes(code)) ?? 'UNKNOWN_ERROR';\nconst workflow_name = workflow.name ?? execution.workflowName ?? 'Unknown Workflow';\nconst node_name = node.name ?? execution.lastNodeExecuted ?? 'Unknown Node';\nconst execution_id = execution.id ?? null;\nconst redacted_input = {\n  workflow_name,\n  node_name,\n  execution_id,\n  lead_id: input.lead_id ?? input.lead?.lead_id ?? null,\n  source: input.source ?? input.lead?.source ?? null,\n  has_error: Boolean(input.error),\n  error_name: error.name ?? null\n};\nconst error_log = {\n  error_id: 'err_' + Date.now(),\n  lead_id: redacted_input.lead_id,\n  timestamp: new Date().toISOString(),\n  workflow_name,\n  node_name,\n  error_code,\n  error_message: message,\n  status: 'FAILED',\n  raw_input: redacted_input,\n  raw_ai_output: input.raw_ai_output && typeof input.raw_ai_output === 'object' ? {\n    lead_type: input.raw_ai_output.lead_type ?? null,\n    intent: input.raw_ai_output.intent ?? null,\n    priority: input.raw_ai_output.priority ?? null,\n    lead_score: input.raw_ai_output.lead_score ?? null,\n    crm_fields: input.raw_ai_output.crm_fields ?? null\n  } : null\n};\nconst slack_alert = {\n  channel: $env.SLACK_CHANNEL_ID || '#sales',\n  text: 'LeadOps workflow failed: ' + workflow_name,\n  fields: {\n    workflow_name,\n    node_name,\n    error_code,\n    error_message: message,\n    execution_id\n  }\n};\nreturn [{ json: { error_log, slack_alert } }];"
       },
       "id": "extract-execution-context",
       "name": "Extract Execution Context",
@@ -95,13 +95,7 @@
             "node": "Append Error Log Row",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Append Error Log Row": {
-      "main": [
-        [
+          },
           {
             "node": "Send Critical Failure Notification",
             "type": "main",
