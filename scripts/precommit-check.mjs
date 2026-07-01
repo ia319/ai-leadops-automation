@@ -31,6 +31,18 @@ const stagedResult = runGit(
     encoding: "buffer",
   },
 );
+if (stagedResult.status !== 0) {
+  errors.push("Unable to list staged files.");
+  const output = Buffer.concat([
+    stagedResult.stdout ?? Buffer.alloc(0),
+    stagedResult.stderr ?? Buffer.alloc(0),
+  ])
+    .toString("utf8")
+    .trim();
+  if (output) {
+    errors.push(output);
+  }
+}
 const stagedFiles = stagedResult.stdout
   .toString("utf8")
   .split("\0")
